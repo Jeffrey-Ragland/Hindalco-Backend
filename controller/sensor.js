@@ -15,24 +15,51 @@ export const signup = (req, res) => {
     .catch(error => console.log(error));
 };
 
-export const login = (req,res) => {
-    const {Username, Password} = req.body;
-    loginModel.findOne({Username})
-    .then(user => {
-        if(user) {
-            bcrypt.compare(Password, user.Password, (err, response) => {
-                if(response) {
-                    const redirectUrl = '/dashboard';
-                    const token = jwt.sign({Username: user.Username}, 'jwt-secret-key-123', {expiresIn: '1d'});
-                    res.json({token, redirectUrl});
-                } else {
-                    res.status(401).json({ message: "Incorrect password" });
-                };
-            });
-        };
+export const login = (req, res) => {
+  const { Username, Password } = req.body;
+  loginModel
+    .findOne({ Username })
+    .then((user) => {
+      if (user) {
+        bcrypt.compare(Password, user.Password, (err, response) => {
+          if (response) {
+            const redirectUrl = "/dashboard";
+            const token = jwt.sign(
+              { Username: user.Username },
+              "jwt-secret-key-123",
+              { expiresIn: "1d" }
+            );
+            res.json({ token, redirectUrl });
+          } else {
+            res.json("Incorrect password");
+          }
+        });
+      } else {
+        res.json("User not found");
+      }
     })
-    .catch(error => {
-        console.log(error);
-        res.status(500).json({ message: "Server error" });
-});
+    .catch((error) => {
+      console.log(error);
+    });
+};
+
+// token validation
+export const validateToken = (req,res) => {
+  const token = req.headers["authorization"];  
+//   if (!token) {
+//     return res.status(401).json({ valid: false });
+//   }
+
+  jwt.verify(token, "jwt-secret-key-123", (err, user) => {
+    if (err) {
+      return res.status(403).json({ valid: false });
+    }
+    else {
+        res.json({ valid: true });
+    }
+  });
+
+//   if (!token) {
+//     return res.json({ valid: false });
+//   }
 };
