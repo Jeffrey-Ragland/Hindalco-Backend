@@ -102,10 +102,10 @@ export const getHindalcoData = async (req,res) => {
     const limit = parseInt(req.query.limit);
 
     const hindalcoData = await hindalcoModel
-      .find({})
-      .sort({ _id: -1 })
-      .limit(limit)
-      .select({__v: 0, updatedAt: 0});
+    .find({})
+    .sort({ _id: -1 })
+    .limit(limit)
+    .select({__v: 0, updatedAt: 0});
 
     if (hindalcoData.length > 0) {
       res.json({ success: true, data: hindalcoData });
@@ -115,4 +115,39 @@ export const getHindalcoData = async (req,res) => {
   } catch (error) {
     res.status(500).json({ error });
   }
+};
+
+// date wise hindalco data for line graph
+export const getHindalcoDatewiseData = async (req,res) => {
+  try {
+    const {selectedGauge, datepickerSensorFromDate, datepickerSensorToDate} = req.body;
+    // console.log(selectedGauge, datepickerSensorFromDate, datepickerSensorToDate);
+
+    let query = {};
+
+    const newToDate = new Date(datepickerSensorToDate);
+    newToDate.setDate(newToDate.getDate() + 1);
+
+    query = {
+      createdAt: {
+        $gte: new Date(datepickerSensorFromDate),
+        $lte: datepickerSensorToDate,
+      },
+    };
+
+    const projection = {
+      selectedGauge: 1,
+      _id: 0
+    };
+
+    const datewiseData = await hindalcoModel.find(query, projection);
+
+    if(datewiseData.length > 0) {
+      res.json({ success: true, data: datewiseData });
+    } else {
+      res.json({success: false, message: 'No data f'})
+    }
+  } catch (error) {
+    console.error(' Error fetching data', error);
+  };
 };
