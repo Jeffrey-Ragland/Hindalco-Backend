@@ -141,9 +141,74 @@ export const getHindalcoDatewiseData = async (req,res) => {
     if(datewiseData.length > 0) {
       res.json({ success: true, data: datewiseData });
     } else {
-      res.json({success: false, message: 'No data found'})
+      res.json({success: false, message: 'No data found in that time period'})
     }
   } catch (error) {
     console.error(' Error fetching data', error);
   };
 };
+
+// report api
+export const getHindalcoReportData = async(req,res) => {
+  try {
+    const {
+      fromDate,
+      toDate,
+      count,
+      unselectedSensors,
+      sensorWiseFromDate,
+      sensorWiseToDate,
+      sensorWiseCount,
+    } = req.query;
+
+    let query = {};
+    let sort = { _id: -1 };
+    const unselectedSensorsArray = unselectedSensors
+      ? unselectedSensors.split(",")
+      : [];
+
+    if (fromDate || toDate) {
+      const newToDate = new Date(toDate);
+      newToDate.setDate(newToDate.getDate() + 1);
+
+      query = {
+        createdAt: { $gte: new Date(fromDate), $lte: newToDate },
+      };
+    }
+
+    if (sensorWiseFromDate || sensorWiseToDate) {
+      const newSensorWiseToDate = new Date(sensorWiseToDate);
+      newSensorWiseToDate.setDate(newSensorWiseToDate.getDate() + 1);
+
+      query = {
+        createdAt: {
+          $gte: new Date(sensorWiseFromDate),
+          $lte: newSensorWiseToDate,
+        },
+      };
+    }
+
+    let projection = { __v: 0, updatedAt: 0, _id: 0 };
+
+    if (unselectedSensorsArray.length > 0) {
+      unselectedSensorsArray.forEach((sensor) => {
+        projection[sensor] = 0;
+      });
+    }
+
+    let cursor = hindalcoModel.find(query).sort(sort).select(projection);
+
+    if (count) {
+      cursor = cursor.limit(parseInt(count));
+    }
+
+    if (sensorWiseCount) {
+      cursor = cursor.limit(parseInt(sensorWiseCount));
+    }
+    
+    const hindalcoReportData = await cursor.exec();
+    res.json({ success: true, data: hindalcoReportData });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+}
